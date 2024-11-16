@@ -2,6 +2,7 @@ import requests
 import random
 from datetime import datetime, timezone
 from bs4 import BeautifulSoup
+import re
 from typing import Dict
 
 
@@ -31,18 +32,26 @@ def get_stock_price_google(stock_symbol):
     
     # Find the `div` with `data-attrid="Price"`
     price_div = soup.find("div", {"data-attrid": "Price"})
+    price_value = None
+    currency = None	
     
     # Find the `span` containing text that includes "EUR" and retrieve its previous sibling (the stock price)
     if price_div:
-        eur_span = price_div.find("span", string=lambda text: text and "EUR" in text)
-        if eur_span and eur_span.previous_sibling:
-            # Convert the price text to a float
-            price_text = eur_span.previous_sibling.text
-            price = float(price_text.replace(",", "."))
-            return price
-    return None  # Return None if the price is not found
+        # Find the first <span> that contains a number with two decimal digits
+        span_with_price = price_div.find("span", string=re.compile(r"\d+[,\.]\d{2}"))
+        
+        if span_with_price:
+            # Extract the value from span_with_price
+            price_value = span_with_price.text
+            price_value = price_value.replace(",",".")
+            
+            # Find the next <span> after span_with_price
+            next_span = span_with_price.find_next("span")
+            if next_span:
+                currency = next_span.text
+    return price_value, currency  # Return None if the price is not found
 
-def check_stock_price(stock_symbol: str) -> Dict[str, object]:
+def check_stock_price(stock_symbol: str) -> Dict[str, object, str]:
     # while True:
     try:
         # Get the current stock price
