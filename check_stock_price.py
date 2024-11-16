@@ -24,7 +24,9 @@ def get_stock_price_google(stock_symbol):
     }
     
     response = requests.get(url, headers=headers)
-    print("HTML content:", response.text)
+    # print("HTML content:", response.text)
+    print(f"HTTP Response Status Code: {response.status_code}")
+
     soup = BeautifulSoup(response.text, 'html.parser')
     
     # Find the `div` with `data-attrid="Price"`
