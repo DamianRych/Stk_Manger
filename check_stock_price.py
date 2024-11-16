@@ -3,7 +3,13 @@ import random
 from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 import re
-from typing import Dict
+from typing import TypedDict
+
+# Define the exact structure of the dictionary using TypedDict
+class StockPriceDict(TypedDict):
+    price: float
+    timestamp: str
+    stock: str
 
 
 def get_stock_price_google(stock_symbol):
@@ -51,7 +57,7 @@ def get_stock_price_google(stock_symbol):
                 currency = next_span.text
     return price_value, currency  # Return None if the price is not found
 
-def check_stock_price(stock_symbol: str) -> Dict[str, object, str]:
+def check_stock_price(stock_symbol: str) -> StockPriceDict:
     # while True:
     try:
         # Get the current stock price
