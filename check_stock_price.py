@@ -1,16 +1,18 @@
+import argparse
 import requests
 import random
 from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 import re
 from typing import TypedDict
+# from forex_python.converter import CurrencyRates
+
 
 # Define the exact structure of the dictionary using TypedDict
 class StockPriceDict(TypedDict):
     price: float
     timestamp: str
     stock: str
-
 
 def get_stock_price_google(stock_symbol):
     url = f"https://www.google.com/search?q={stock_symbol}+stock+price"
@@ -31,7 +33,6 @@ def get_stock_price_google(stock_symbol):
     }
     
     response = requests.get(url, headers=headers)
-    # print("HTML content:", response.text)
     print(f"HTTP Response Status Code: {response.status_code}")
 
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -39,7 +40,7 @@ def get_stock_price_google(stock_symbol):
     # Find the `div` with `data-attrid="Price"`
     price_div = soup.find("div", {"data-attrid": "Price"})
     price_value = None
-    currency = None	
+    currency = None
     
     # Find the `span` containing text that includes "EUR" and retrieve its previous sibling (the stock price)
     if price_div:
@@ -49,7 +50,7 @@ def get_stock_price_google(stock_symbol):
         if span_with_price:
             # Extract the value from span_with_price
             price_value = span_with_price.text
-            price_value = price_value.replace(",",".")
+            price_value = price_value.replace(",", ".")
             
             # Find the next <span> after span_with_price
             next_span = span_with_price.find_next("span")
@@ -57,24 +58,45 @@ def get_stock_price_google(stock_symbol):
                 currency = next_span.text
     return price_value, currency  # Return None if the price is not found
 
+# def convert_currency(amount: float, from_currency: str, to_currency: str = "USD") -> float:
+#     currency_rates = CurrencyRates()
+#     print(amount, from_currency, to_currency)
+#     try:
+#         # Fetch the conversion rate and calculate the converted amount
+#         converted_amount = currency_rates.convert(from_currency, to_currency, amount)
+#         return converted_amount
+#     except Exception as e:
+#         raise RuntimeError(f"Currency conversion error: {e}")
+
+
 def check_stock_price(stock_symbol: str) -> StockPriceDict:
-    # while True:
     try:
         # Get the current stock price
-        price = get_stock_price_google(stock_symbol)
+        price, currency = get_stock_price_google(stock_symbol)
+        # if currency != "USD":
+        #     convert_currency(price, currency)
         if price is not None:
             return {
-                "price": price,
-                "timestamp": datetime.now(timezone.utc).isoformat(),  # Use UTC timestamp in ISO format,
-                "stock": stock_symbol
+                "price": float(price),
+                "timestamp": datetime.now(timezone.utc).isoformat(),  # Use UTC timestamp in ISO format
+                "stock": stock_symbol,
+                "currency": currency,
             }
         else:
             raise ValueError(f"Failed to retrieve stock price for symbol: {stock_symbol}")
     except Exception as e:
-        raise RuntimeError(f"An error occurred while fetching stock price for {stock_symbol}")
+        raise RuntimeError(f"An error occurred while fetching stock price for {stock_symbol}: {e}")
 
-# Set stock symbol, target price in EUR
-stock_symbol = "Diageo"
-# target_price = 28.90  # Set your target price here
 
-print(check_stock_price(stock_symbol))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Get stock prices from Google Search.")
+    parser.add_argument(
+        "-stock_symbol", 
+        type=str, 
+        required=True, 
+        help="The stock symbol to check."
+    )
+    args = parser.parse_args()
+
+    stock_symbol = args.stock_symbol
+    print(check_stock_price(stock_symbol))

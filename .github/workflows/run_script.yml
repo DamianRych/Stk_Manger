@@ -1,11 +1,8 @@
-name: Check Stock Price
+name: Check Stock Prices
 
 on:
   schedule:
-    # Run every 10 minutes
     - cron: "*/10 * * * *"
-  # workflow_dispatch:  # Allows manual execution from the Actions tab
-
 
 jobs:
   run-script:
@@ -20,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"  # Specify the Python version you need
+          python-version: "3.10"
 
       # Step 3: Install dependencies
       - name: Install dependencies
@@ -28,14 +25,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Run the Python script
-      - name: Run the script
+      # Step 4: Generate stock symbols
+      - name: Get stock symbols
+        id: get-symbols  # Set an ID for this step to access outputs in later steps
         run: |
-          python check_stock_price.py
-        
-      # Step 5: Capture and fail on null result
-      - name: Check for failure in logs
-        if: ${{ failure() }}
+          python get_stock_symbols.py > stock_symbols.txt
+        shell: bash
+
+      # Step 5: Loop through stock symbols and execute the script
+      - name: Execute script for each stock symbol
         run: |
-          echo "ERROR: Script encountered a failure. Check logs for details."
-          exit 1
+          while IFS= read -r symbol; do
+            echo "Processing stock symbol: $symbol"
+            python check_stock_price.py -stock_symbol="$symbol"
+          done < stock_symbols.txt
