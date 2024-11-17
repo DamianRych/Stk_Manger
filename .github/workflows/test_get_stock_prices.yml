@@ -1,0 +1,42 @@
+name: Test Get Stock Prices
+
+on:
+  push:
+    branches:
+      - main  # Adjust the branch as needed
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Generate stock symbols
+      - name: Get stock symbols
+        id: get-symbols  # Set an ID for this step to access outputs in later steps
+        run: |
+          python get_stock_symbols.py > stock_symbols.txt
+        shell: bash
+
+      # Step 5: Loop through stock symbols and execute the script
+      - name: Execute script for each stock symbol
+        run: |
+          while IFS= read -r symbol; do
+            echo "Processing stock symbol: $symbol"
+            python check_stock_price.py -stock_symbol="$symbol"
+          done < stock_symbols.txt
